@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zeke Pac-Man Arcade</title>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik+Glitch&family=Bungee+Shade&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: sans-serif;
+      overflow: hidden;
+      background-color: #1a1a1a;
+      color: #fff;
+    }
+    .banner {
+      width: 100%;
+      background: linear-gradient(90deg, #ff007f, #7f00ff);
+      text-align: center;
+      padding: 30px 0;
+      box-shadow: 0 6px 20px rgba(255,0,127,0.5);
+      position: relative;
+    }
+    .banner h1 {
+      margin: 0;
+      font-family: 'Rubik Glitch', cursive;
+      font-size: 4.5rem;
+      color: #fff;
+      letter-spacing: 4px;
+      text-shadow: 3px 3px #00ffff, -3px -3px #ff007f;
+    }
+
+    /* Discreet Stats Header */
+    .live-stats {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 14px;
+      color: #00ffff;
+      text-align: right;
+      font-family: monospace;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px #000;
+    }
+
+    .main-layout {
+      display: flex;
+      flex: 1;
+      width: 100%;
+      justify-content: space-between;
+      align-items: stretch;
+      overflow: hidden;
+    }
+    .left-sidebar, .right-sidebar {
+      width: 280px;
+      background-color: #222;
+      padding: 20px;
+      box-sizing: border-box;
+      border-left: 2px solid #333;
+      border-right: 2px solid #333;
+      overflow-y: auto;
+      height: 100%;
+    }
+    .left-sidebar h3, .right-sidebar h3 {
+      text-align: center;
+      color: #00ffff;
+      font-family: 'Bungee Shade', cursive;
+      font-size: 1.1rem;
+    }
+
+    .upgrade-box {
+      background: linear-gradient(135deg, #2c3e50, #3498db);
+      border: 2px solid #00ffff;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 12px rgba(0,255,255,0.2);
+    }
+
+    .game-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    /* Pac-Man Game Canvas Container */
+    #pacman-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #111;
+      border: 2px solid #ff007f;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 0 30px rgba(255,0,127,0.4);
+    }
+    #pacmanCanvas {
+      background: #000;
+      border: 2px solid #00ffff;
+      box-shadow: 0 0 15px rgba(0,255,255,0.3);
+      display: block;
+    }
+    .pacman-btn {
+      background-color: #ff007f;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin-top: 15px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    .pacman-btn:hover {
+      background-color: #00ffff;
+      color: #1a1a1a;
+    }
+
+    /* =========================================
+       DISCREET ARCADE CSS 
+       ========================================= */
+    #arcade-trigger {
+      position: fixed;
+      bottom: 15px;
+      right: 15px;
+      font-size: 28px;
+      opacity: 0.15;
+      cursor: pointer;
+      transition: opacity 0.3s, transform 0.2s;
+      z-index: 999;
+    }
+    #arcade-trigger:hover {
+      opacity: 1;
+      transform: scale(1.1);
+      text-shadow: 0 0 10px #ff007f;
+    }
+
+    #arcade-modal {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      display: none; align-items: center; justify-content: center;
+      z-index: 1000;
+    }
+    .arcade-content {
+      background: #111;
+      border: 2px solid #ff007f;
+      border-radius: 12px;
+      padding: 20px;
+      width: 350px;
+      box-shadow: 0 0 30px rgba(255,0,127,0.5);
+      text-align: center;
+    }
+    .arcade-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="banner">
+    <h1>Zeke's Pac-Man</h1>
+    <div class="live-stats">
+      Score: <span id="stat-score">0</span><br>
+      Lives: <span id="stat-lives">3</span>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <div class="left-sidebar">
+      <h3>Controls</h3>
+      <div class="upgrade-box">
+        <p style="text-align: left; color: #00ffff;">⬅ ⬆ ⬇ ➡ : Move Zeke</p>
+        <p style="text-align: left; color: #f1c40f;">Eat the smaller Zekes, avoid the ghost Zekes!</p>
+      </div>
+    </div>
+
+    <div class="game-container">
+      <div id="pacman-wrapper">
+        <canvas id="pacmanCanvas" width="380" height="380"></canvas>
+        <button class="pacman-btn" onclick="startPacmanGame()">Start Game</button>
+      </div>
+    </div>
+
+    <div class="right-sidebar">
+      <h3>Status</h3>
+      <p>Dots Left: <span id="stat-dots">0</span></p>
+    </div>
+  </div>
+
+  <!-- Discreet Arcade Button -->
+  <div id="arcade-trigger" onclick="toggleArcade(true)" title="Arcade Info">🎮</div>
+
+  <!-- Arcade Modal -->
+  <div id="arcade-modal">
+    <div class="arcade-content">
+      <div class="arcade-header">
+        <span style="color: #00ffff; font-family: 'Bungee Shade';">Zeke Arcade</span>
+        <button onclick="toggleArcade(false)" style="background:none; border:none; color:#ff007f; font-size:18px; cursor:pointer;">✖</button>
+      </div>
+      <p style="color: #ccc; font-size: 14px;">Welcome to Zeke-Man! Everything on screen is Zeke. Navigate the maze and consume the tiny Zekes while dodging the enemy Zekes.</p>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('pacmanCanvas');
+    const ctx = canvas.getContext('2d');
+    const TILE_SIZE = 20;
+    const MAP_SIZE = 19; // 19x19 grid
+
+    // 1 = Wall (Zeke wall), 0 = Dot (small Zeke pellet), 2 = Empty
+    const initialMap = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+      [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,0,1,0,1,1,1,1,1,0,1,0,1,1,0,1],
+      [1,0,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,0,1],
+      [1,1,1,1,0,1,1,1,2,1,2,1,1,1,0,1,1,1,1],
+      [2,2,2,1,0,1,2,2,2,2,2,2,2,1,0,1,2,2,2],
+      [1,1,1,1,0,1,2,1,1,2,1,1,2,1,0,1,1,1,1],
+      [2,2,2,2,0,2,2,1,2,2,2,1,2,2,0,2,2,2,2],
+      [1,1,1,1,0,1,2,1,1,1,1,1,2,1,0,1,1,1,1],
+      [2,2,2,1,0,1,2,2,2,2,2,2,2,1,0,1,2,2,2],
+      [1,1,1,1,0,1,2,1,1,1,1,1,2,1,0,1,1,1,1],
+      [1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1],
+      [1,0,1,1,0,1,1,1,0,1,0,1,1,1,0,1,1,0,1],
+      [1,0,0,1,0,0,0,0,0,2,0,0,0,0,0,1,0,0,1],
+      [1,1,0,1,0,1,0,1,1,1,1,1,0,1,0,1,0,1,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+
+    let map = [];
+    let score = 0;
+    let lives = 3;
+    let gameInterval = null;
+
+    // Load Zeke image
+    const zekeImg = new Image();
+    zekeImg.src = 'zeke.jpg';
+
+    let player = { x: 9, y: 14, dx: 0, dy: 0, nextDx: 0, nextDy: 0 };
+    let ghosts = [
+      { x: 9, y: 8, dx: 0, dy: -1 },
+      { x: 8, y: 9, dx: 1, dy: 0 },
+      { x: 10, y: 9, dx: -1, dy: 0 }
+    ];
+
+    function startPacmanGame() {
+      if (gameInterval) clearInterval(gameInterval);
+      map = initialMap.map(row => [...row]);
+      score = 0;
+      lives = 3;
+      resetPositions();
+      updateStats();
+      gameInterval = setInterval(updateGame, 250); // game speed tick
+    }
+
+    function resetPositions() {
+      player = { x: 9, y: 14, dx: 0, dy: 0, nextDx: 0, nextDy: 0 };
+      ghosts = [
+        { x: 9, y: 8, dx: 0, dy: -1 },
+        { x: 8, y: 9, dx: 1, dy: 0 },
+        { x: 10, y: 9, dx: -1, dy: 0 }
+      ];
+    }
+
+    function updateGame() {
+      // Try applying next direction input if valid
+      if (player.nextDx !== 0 || player.nextDy !== 0) {
+        let nextX = player.x + player.nextDx;
+        let nextY = player.y + player.nextDy;
+        if (nextX >= 0 && nextX < MAP_SIZE && map[nextY][nextX] !== 1) {
+          player.dx = player.nextDx;
+          player.dy = player.nextDy;
+        }
+      }
+
+      // Move player
+      let targetX = player.x + player.dx;
+      let targetY = player.y + player.dy;
+      if (targetX >= 0 && targetX < MAP_SIZE && targetY >= 0 && targetY < MAP_SIZE && map[targetY][targetX] !== 1) {
+        player.x = targetX;
+        player.y = targetY;
+      }
+
+      // Eat dot (0)
+      if (map[player.y][player.x] === 0) {
+        map[player.y][player.x] = 2; // turn to empty space
+        score += 10;
+        updateStats();
+      }
+
+      // Move ghosts randomly/smartly
+      ghosts.forEach(ghost => {
+        let possibleMoves = [
+          {dx: 0, dy: -1}, {dx: 0, dy: 1}, {dx: -1, dy: 0}, {dx: 1, dy: 0}
+        ].filter(m => {
+          let gx = ghost.x + m.dx;
+          let gy = ghost.y + m.dy;
+          return gx >= 0 && gx < MAP_SIZE && gy >= 0 && gy < MAP_SIZE && map[gy][gx] !== 1;
+        });
+
+        // Don't instantly reverse unless forced
+        let validMoves = possibleMoves.filter(m => !(m.dx === -ghost.dx && m.dy === -ghost.dy));
+        if (validMoves.length === 0) validMoves = possibleMoves;
+
+        if (validMoves.length > 0) {
+          let chosen = validMoves[Math.floor(Math.random() * validMoves.length)];
+          ghost.dx = chosen.dx;
+          ghost.dy = chosen.dy;
+          ghost.x += ghost.dx;
+          ghost.y += ghost.dy;
+        }
+
+        // Check collision with player
+        if (ghost.x === player.x && ghost.y === player.y) {
+          lives--;
+          updateStats();
+          if (lives <= 0) {
+            clearInterval(gameInterval);
+            gameInterval = null;
+            alert("Game Over! Zeke was caught. Final Score: " + score);
+            startPacmanGame();
+            return;
+          } else {
+            resetPositions();
+          }
+        }
+      });
+
+      checkWinCondition();
+      drawBoard();
+    }
+
+    function checkWinCondition() {
+      let dotsLeft = 0;
+      for (let r = 0; r < MAP_SIZE; r++) {
+        for (let c = 0; c < MAP_SIZE; c++) {
+          if (map[r][c] === 0) dotsLeft++;
+        }
+      }
+      document.getElementById('stat-dots').innerText = dotsLeft;
+      if (dotsLeft === 0) {
+        clearInterval(gameInterval);
+        gameInterval = null;
+        alert("YOU WIN! All Zekes collected! Score: " + score);
+        startPacmanGame();
+      }
+    }
+
+    function drawBoard() {
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      let dotsLeft = 0;
+      for (let r = 0; r < MAP_SIZE; r++) {
+        for (let c = 0; c < MAP_SIZE; c++) {
+          if (map[r][c] === 1) {
+            // Wall block = Zeke image with border
+            drawZekeImage(c * TILE_SIZE, r * TILE_SIZE, TILE_SIZE, '#ff007f', 0.8);
+          } else if (map[r][c] === 0) {
+            dotsLeft++;
+            // Pellet = tiny Zeke image
+            let size = TILE_SIZE * 0.4;
+            let offset = (TILE_SIZE - size) / 2;
+            drawZekeImage(c * TILE_SIZE + offset, r * TILE_SIZE + offset, size, '#f1c40f', 1);
+          }
+        }
+      }
+      document.getElementById('stat-dots').innerText = dotsLeft;
+
+      // Draw Ghosts (Enemy Zekes with a red/purple tint styling via border/shadow)
+      ghosts.forEach(ghost => {
+        drawZekeImage(ghost.x * TILE_SIZE, ghost.y * TILE_SIZE, TILE_SIZE, '#ff0000', 1, true);
+      });
+
+      // Draw Player (Zeke character with a cyan highlight)
+      drawZekeImage(player.x * TILE_SIZE, player.y * TILE_SIZE, TILE_SIZE, '#00ffff', 1, false);
+    }
+
+    function drawZekeImage(x, y, size, borderColor, opacity = 1, isGhost = false) {
+      ctx.save();
+      ctx.globalAlpha = opacity;
+      if (zekeImg.complete && zekeImg.naturalHeight !== 0) {
+        ctx.drawImage(zekeImg, x, y, size, size);
+      } else {
+        // Fallback drawing if image missing
+        ctx.fillStyle = borderColor;
+        ctx.fillRect(x, y, size, size);
+      }
+      ctx.strokeStyle = borderColor;
+      ctx.lineWidth = isGhost ? 2 : 1;
+      ctx.strokeRect(x, y, size, size);
+      ctx.restore();
+    }
+
+    function updateStats() {
+      document.getElementById('stat-score').innerText = score;
+      document.getElementById('stat-lives').innerText = lives;
+    }
+
+    function toggleArcade(show) {
+      document.getElementById('arcade-modal').style.display = show ? 'flex' : 'none';
+    }
+
+    // Keyboard inputs
+    window.addEventListener('keydown', e => {
+      if (!gameInterval) return;
+      if (e.key === 'ArrowLeft') { player.nextDx = -1; player.nextDy = 0; }
+      else if (e.key === 'ArrowRight') { player.nextDx = 1; player.nextDy = 0; }
+      else if (e.key === 'ArrowUp') { player.nextDx = 0; player.nextDy = -1; }
+      else if (e.key === 'ArrowDown') { player.nextDx = 0; player.nextDy = 1; }
+    });
+
+    // Initial load draw
+    map = initialMap.map(row => [...row]);
+    drawBoard();
+  </script>
+</body>
+</html>
